@@ -1,11 +1,16 @@
-FROM node:16
-
+# Build stage
+FROM node:16-alpine AS builder
 WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
 
-COPY . /app
-
-RUN npm install
-
+# Production stage
+FROM node:16-alpine AS production
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nextjs -u 1001
+WORKDIR /app
+COPY --from=builder /app/node_modules ./node_modules
+COPY --chown=nextjs:nodejs . .
+USER nextjs
 EXPOSE 3000
-
-CMD [ "node", "app.js" ]
+CMD ["node", "app.js"]
